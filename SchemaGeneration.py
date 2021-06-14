@@ -10,11 +10,11 @@ from IntegrateAPI import get_json, get_url, subtreeDict, hgncApi, hgvsApiESearch
 # In[3]:
 
 
-def generateGeneticSpecimen(termStr):
+def generateGeneticSpecimen(termStr,apiKey):
     strList=termStr.split(' ')
     needBreak=False
     for term in strList:
-        termCollection=get_json(get_url("SNOMEDCT",term,True,subtreeDict['collection_body']))['collection']
+        termCollection=get_json(get_url("SNOMEDCT",term,True,subtreeDict['collection_body']),apiKey)['collection']
         if len(termCollection)>0:
             for listItem in termCollection:
                 if 'notation' in listItem:
@@ -40,13 +40,13 @@ def generateGeneticSpecimen(termStr):
 # In[4]:
 
 
-def generateBodySite(termStr):
+def generateBodySite(termStr,apiKey):
     if '/' in termStr:
         bodyPart = termStr.split('/')[0]
     else:
         bodyPart=termStr
     bodyPartNew=bodyPart.replace(' ','+')
-    termCollection = get_json(get_url("SNOMEDCT",bodyPartNew,False,subtreeDict['collection_body']))['collection']
+    termCollection = get_json(get_url("SNOMEDCT",bodyPartNew,False,subtreeDict['collection_body']),apiKey)['collection']
     idLabel = generateIdLabel(termCollection, 'SNOMEDCT', "SNOMED: 261665006")
     return idLabel
 
@@ -54,9 +54,9 @@ def generateBodySite(termStr):
 # In[ ]:
 
 
-def generateMedication(medItem):
+def generateMedication(medItem,apiKey):
     medString = medItem.replace(' ','+')
-    termCollection = get_json(get_url("RxNorm",medString,False,''))['collection']
+    termCollection = get_json(get_url("RxNorm",medString,False,''),apiKey)['collection']
     idLabel = generateIdLabel(termCollection, 'RxNorm', 'RxNorm:Unknown')
     return idLabel
         
@@ -65,7 +65,7 @@ def generateMedication(medItem):
 # In[ ]:
 
 
-def generateTumorMarker(tumorItem, tumorList):
+def generateTumorMarker(tumorItem, tumorList,apiKey):
     if tumorItem.replace('.','1').isdigit():
         tumorList[-1]['tumor_marker_data_value'] = {
             'value': {
@@ -89,7 +89,7 @@ def generateTumorMarker(tumorItem, tumorList):
         }
     else:
         dataStr = tumorItem.replace(' ','+')
-        termCollection = get_json(get_url("loinc",dataStr,False,''))['collection']
+        termCollection = get_json(get_url("loinc",dataStr,False,''),apiKey)['collection']
         idLabel = generateIdLabel(termCollection, "LOINC", 'LOINC:LA4489-6')
         tumorList[-1]['tumor_marker_data_value'] = {
             'value': {

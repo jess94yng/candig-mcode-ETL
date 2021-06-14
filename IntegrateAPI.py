@@ -18,15 +18,14 @@ except ImportError:
 
 # In[2]:
 
-
 REST_URL = "http://data.bioontology.org"
-API_KEY = "8bfebd3e-5518-4b2a-8158-b902dfbae7f0"
 
 
 # In[3]:
 
 
-def get_json(url):
+def get_json(url,key):
+    API_KEY = key
     opener = urllib.request.build_opener()
     opener.addheaders = [('Authorization', 'apikey token=' + API_KEY)]
     return json.loads(opener.open(url).read())
@@ -83,14 +82,14 @@ def hgncApi(symbol):
     # parse content with the json module 
         data = json.loads(content)
         return data
-def hgvsApiESearch(toSearch):
-    Entrez.email = "jessica.yang@uhn.ca"
+def hgvsApiESearch(toSearch, email):
+    Entrez.email = email
     handle = Entrez.esearch(db="clinvar", term=toSearch, retmax=15)
     record = Entrez.read(handle)
     handle.close()
     return(record)
-def hgvsApiESummary(identifier):
-    Entrez.email = "jessica.yang@uhn.ca"
+def hgvsApiESummary(identifier,email):
+    Entrez.email = email
     handle = Entrez.esummary(db="clinvar", id=identifier, retmode='xml')
     record = Entrez.read(handle)
     handle.close()

@@ -11,6 +11,16 @@ from SchemaBase import returnMCodePacket, returnSubject, returnGenomicsReport, r
 from IntegrateAPI import get_json, get_url, subtreeDict, hgncApi, hgvsApiESearch, hgvsApiESummary
 from SchemaGeneration import generateGeneticSpecimen, generateBodySite, generateIdLabel, generateMedication, generateTumorMarker
 
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--Data_path', type=str, required=True)
+parser.add_argument('--BioPortal_API_Key', type=str, required=True)
+parser.add_argument('--Email', type=str, required=True)
+args = parser.parse_args()
+dataset = args.Data_path
+apiKey = args.BioPortal_API_Key
+email = args.Email
 
 def notNull(cell):
     if cell == 'nan': return False
@@ -133,8 +143,8 @@ def mCodePacketBuild(dataframeItem,counterVar):
             geneticSpecimen.append({
                 'id': str(counterVar) + '-' + str(tempCounter1),
                 'collection_body': {
-                    'id': generateGeneticSpecimen(dataframeItem['collection_body_site'][i])[0],
-                    'label': generateGeneticSpecimen(dataframeItem['collection_body_site'][i])[1]
+                    'id': generateGeneticSpecimen(dataframeItem['collection_body_site'][i],apiKey)[0],
+                    'label': generateGeneticSpecimen(dataframeItem['collection_body_site'][i],apiKey)[1]
                 }
             })
             tempCounter1 += 1
@@ -171,11 +181,11 @@ def mCodePacketBuild(dataframeItem,counterVar):
         geneRegionAdd = True
         geneMutation = []
         for i in range(len(dataframeItem['gene_mutation'])):
-            result = hgvsApiESearch(dataframeItem['gene_mutation'][i])
+            result = hgvsApiESearch(dataframeItem['gene_mutation'][i], email)
             if len(result['IdList']) > 0:
                 geneMutation.append({
                     'id' : "HGVS:" + result['IdList'][0],
-                    'label': hgvsApiESummary(result['IdList'][0])
+                    'label': hgvsApiESummary(result['IdList'][0], email)
                 })
         geneticRegionStudied['gene_mutation'] = geneMutation
 
@@ -204,7 +214,7 @@ def mCodePacketBuild(dataframeItem,counterVar):
         behaviorTerm = dataframeItem['history_morphology_behavior'].replace(' ','+')
         needBreak = False
         for behaviorSubtree in subtreeDict['history_morphology_behaviour']:
-            termCollection = get_json(get_url('SNOMEDCT',behaviorTerm,False,subtreeDict['history_morphology_behaviour'][behaviorSubtree]))['collection']
+            termCollection = get_json(get_url('SNOMEDCT',behaviorTerm,False,subtreeDict['history_morphology_behaviour'][behaviorSubtree]),apiKey)['collection']
             if len(termCollection) > 0:
                 for listItem in termCollection:
                     if 'notation' in listItem:
@@ -231,8 +241,8 @@ def mCodePacketBuild(dataframeItem,counterVar):
         bodySite = []
         for i in range(len(dataframeItem['body_site'])):
             bodySite.append({
-                'id': generateBodySite(dataframeItem['body_site'][i])[0],
-                'label': generateBodySite(dataframeItem['body_site'][i])[1]
+                'id': generateBodySite(dataframeItem['body_site'][i],apiKey)[0],
+                'label': generateBodySite(dataframeItem['body_site'][i],apiKey)[1]
             })
             
         cancerRelatedProcedures['body_site'] = bodySite
@@ -246,8 +256,8 @@ def mCodePacketBuild(dataframeItem,counterVar):
             medicationStatement.append({
                 'id': str(counterVar) + '-' + str(tempCounter2),
                 'medication_code': {
-                    'id': generateMedication(medicine)[0],
-                    'label': generateMedication(medicine)[1]
+                    'id': generateMedication(medicine,apiKey)[0],
+                    'label': generateMedication(medicine,apiKey)[1]
                 }
             })
             tempCounter2 += 1
@@ -277,7 +287,7 @@ def mCodePacketBuild(dataframeItem,counterVar):
         tempCounter3 = 0
         for data in dataframeItem['tumor_marker_data_value']:
             tumorMarker.append(returnTumorMarker(counterVar, tempCounter3, dataframeItem['identifier'], True))
-            tumorMarker = generateTumorMarker(data, tumorMarker)
+            tumorMarker = generateTumorMarker(data, tumorMarker,apiKey)
 
             if extra:
                 tumorMarker[-1]['extra_properties']=tumorExtra
@@ -297,12 +307,10 @@ def mCodePacketBuild(dataframeItem,counterVar):
             mCodePacket['cancer_disease_status'] = cancerDiseaseStatus
     
     return (mCodePacket)
-    
-
 
 def main():
     genomicsID = 1000
-    dfOg = pd.read_excel('data/test_data.xlsx', sheet_name=None, dtype=str)
+    dfOg = pd.read_excel(dataset, sheet_name=None, dtype=str)
     dfList=[]
     for page in dfOg:
         dfList.append(mCodeMapping(dfOg[page]))
