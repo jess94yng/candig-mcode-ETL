@@ -4,328 +4,382 @@
 import pandas as pd
 import json
 from datetime import date
-from MappingDict import raceMappingDict, validMCode, mCodeDict, biochemistry, labResults, vitalSigns, possibleMultiVal
-from Ontologies import Ontologies
-from SchemaBase import returnMCodePacket, returnSubject, returnGenomicsReport, returnGeneticRegionStudied, returnCancerCondition, returnCancerRelatedProcedures, returnTumorMarker
-
-from IntegrateAPI import get_json, get_url, subtreeDict, hgncApi, hgvsApiESearch, hgvsApiESummary
-from SchemaGeneration import generateGeneticSpecimen, generateBodySite, generateIdLabel, generateMedication, generateTumorMarker
-
+from MappingDict import race_mapping_dict, valid_mcode, mcode_dict, lab_results, vital_signs, possible_multi_val
+from Ontologies import ontologies
+from SchemaBase import return_mcodepacket, return_subject, return_genomics_report, return_genetic_region_studied, return_cancer_condition, return_cancer_related_procedures, return_tumor_marker
+from IntegrateAPI import get_json, get_url, subtree_dict, hgnc_api, hgvs_api_esearch, hgvs_api_esummary
+from SchemaGeneration import generate_genetic_specimen, generate_body_site, generate_medication, generate_tumor_marker
 import argparse
 
+# Set up argparse for command line inputs
+# Data_path: path to dataset for ingestion/testing
+# BioPortal_API_Key: found on BioPortal account, used to access BioPortal API
+# Email: organizational email used to access NCBI clinvar API
 parser = argparse.ArgumentParser()
 parser.add_argument('--Data_path', type=str, required=True)
 parser.add_argument('--BioPortal_API_Key', type=str, required=True)
 parser.add_argument('--Email', type=str, required=True)
 args = parser.parse_args()
 dataset = args.Data_path
-apiKey = args.BioPortal_API_Key
+api_key = args.BioPortal_API_Key
 email = args.Email
 
-def notNull(cell):
-    if cell == 'nan': return False
-    else: return True
 
-def raceMapping(inputDataframe,ind,curRow,mappingList):
-    for listItem in mCodeDict['race']:
-        if listItem in inputDataframe:
-            if curRow[listItem] != '0':
-                if curRow[listItem] == '1':
-                    mappingList.append(('race',raceMappingDict[listItem]))
-                elif pd.notna(curRow[listItem]):
-                    mappingList.append(('race',curRow[listItem]))
+# test if value is null
+def not_null(cell):
+    if cell == 'nan':
+        return False
+    else:
+        return True
 
-def eliminateDuplicate(inputDataframe):
-    inputDataframe = inputDataframe.dropna(how='all')
-    inputDataframe = inputDataframe.applymap(str)
-    for index, row in inputDataframe.iterrows():
-        for multiValItem in possibleMultiVal:
-            if multiValItem in inputDataframe:
-                row[multiValItem] = row[multiValItem].split(',')
 
-        if(inputDataframe.duplicated(subset=['identifier'],keep = False)[index]):
-            for multiValItem in possibleMultiVal:
-                if multiValItem in inputDataframe:
-                    newRow=[]
-                    for index1, row1 in inputDataframe.iterrows():
-                        if index1!=index and row1['identifier'] == row['identifier'] and row1[multiValItem] != 'nan':
-                            row[multiValItem].append(row1[multiValItem])
-    inputDataframe = inputDataframe.drop_duplicates(subset = 'identifier')
-    return inputDataframe
+# map race by sorting through columns of different race codes
+def race_mapping(input_dataframe, ind, cur_row, mapping_list):
+    for list_item in mcode_dict['race']:    #for each possible race
+        if list_item in input_dataframe:    #check if in current dataframe
+            if cur_row[list_item] != '0':       #check if value marked as '1' or possibly name of race written
+                if cur_row[list_item] == '1':
+                    mapping_list.append(('race', race_mapping_dict[list_item]))
+                elif pd.notna(cur_row[list_item]):
+                    mapping_list.append(('race', cur_row[list_item]))
+
+
+#eliminate duplicate identifiers and group values from the same data element into a list in the dataframe
+def eliminate_duplicate(input_dataframe):
+    input_dataframe = input_dataframe.dropna(how='all')
+    input_dataframe = input_dataframe.applymap(str)
+    
+    for index, row in input_dataframe.iterrows():   #for each element in the list of data elements that are expected to be in array form
+        for multi_val_item in possible_multi_val:
+            if multi_val_item in input_dataframe:   #check if data element exist in current dataframe
+                row[multi_val_item] = row[multi_val_item].split(',')    #change string to appendable list
+
+        if (input_dataframe.duplicated(subset=['identifier'], keep=False)[index]): #if found rows with duplicated identifier
+            for multi_val_item in possible_multi_val:   #for each element in list of data elements that are expected to be in array form
+                if multi_val_item in input_dataframe: #if element exists in current dataframe
+                    for index1, row1 in input_dataframe.iterrows(): #find following repeated identifiers and append data elements to the list if they are not null
+                        if index1 != index and row1['identifier'] == row['identifier'] and row1[multi_val_item] != 'nan':
+                            row[multi_val_item].append(row1[multi_val_item])
+    input_dataframe = input_dataframe.drop_duplicates(subset='identifier')  #drop all identifier duplicates after the first one
+    return input_dataframe
+
 
 # Process csv data, use mappings to return data frame with mCode data elements
-def mCodeMapping(inputDataframe):
+def mcode_mapping(input_dataframe):
 
-    mCodeCSVList = []
+    mcode_csv_list = []
 
-    for index, row in inputDataframe.iterrows():
-        dataElementList = []
-        dictItem = {}
-        for item in validMCode:
-            if item == 'race':
-                raceMapping(inputDataframe, index, row, dataElementList)
-            elif mCodeDict[item] in inputDataframe:
-                dataElementList.append((item,row[mCodeDict[item]]))
+    for index, row in input_dataframe.iterrows():   #iterate through rows of dataframe
+        data_element_list = []
+        dict_item = {}
+        for item in valid_mcode:    #iterate through data element
+            if item == 'race':  #use race_mapping
+                race_mapping(input_dataframe, index, row, data_element_list)
+            elif mcode_dict[item] in input_dataframe:   #add a tuple with the data element and the corresponding value
+                data_element_list.append((item, row[mcode_dict[item]]))
 
-        for element in dataElementList:
-            dictItem[element[0]] = element[1]
+        for element in data_element_list:
+            dict_item[element[0]] = element[1]  #turn list of tuples into dictionary
 
-        mCodeCSVList.append(dictItem)
-    
-    df1 = pd.DataFrame(mCodeCSVList)
-    df1 = eliminateDuplicate(df1)
+        mcode_csv_list.append(dict_item)
+
+    df1 = pd.DataFrame(mcode_csv_list)  #transform dictionary into new mapped dataframe
+    df1 = eliminate_duplicate(df1)  #eliminate duplicate identifiers
     return df1
 
 
 # Combine dataframes from multiple sheets, delete any duplicate patients by merging data
-def combineSheets(listDataframe):
-    for ind in range (1, len(listDataframe)):
-        listDataframe[0] = listDataframe[0].merge(listDataframe[ind], how='outer')
-    outputDf = listDataframe[0]
-    for index, row in outputDf.iterrows():
-        if(outputDf.duplicated(subset=['identifier'],keep = False)[index]):
-            for column in outputDf:
-                notnaRow = False
-                if isinstance (row[column],list) or pd.notna(row[column]): notnaRow = True
-                for index1, row1 in outputDf.iterrows():
-                    notnaRow1 = False
-                    if isinstance (row1[column],list) or pd.notna(row1[column]): notnaRow1 = True
-                    if index1>index and row1['identifier'] == row['identifier'] and notnaRow == False and notnaRow1 == True:
+def combine_sheets(list_dataframe):
+    for ind in range(1, len(list_dataframe)):   #merge all dataframes in list
+        list_dataframe[0] = list_dataframe[0].merge(
+            list_dataframe[ind], how='outer')
+    output_df = list_dataframe[0]
+    for index, row in output_df.iterrows():     #compare across the newly merged sheets and eliminate repeated identifiers
+        if(output_df.duplicated(subset=['identifier'], keep=False)[index]):
+            for column in output_df:    #check all data elements
+                notna_row = False
+                if isinstance(row[column], list) or pd.notna(row[column]):  #if the field is a list or is a non-null single value, make not-null boolean true
+                    notna_row = True
+                for index1, row1 in output_df.iterrows(): #find repeated identifiers, replace identifier's first occurance field values if not null and first occurance field value is null
+                    notna_row1 = False
+                    if isinstance(row1[column], list) or pd.notna(row1[column]):
+                        notna_row1 = True
+                    if index1 > index and row1['identifier'] == row['identifier'] and notna_row == False and notna_row1 == True:
                         row[column] = row1[column]
-    outputDf = outputDf.drop_duplicates(subset = 'identifier')
-    return outputDf
+    output_df = output_df.drop_duplicates(subset='identifier')
+    return output_df
 
 
 # Organize dataframe into mCode model
-def mCodePacketBuild(dataframeItem,counterVar):
-    mCodePacket = returnMCodePacket(dataframeItem['identifier'])
-    
-    subject = returnSubject(dataframeItem['identifier'])
-    
-    if dataframeItem.get('date_of_birth', None) and notNull(dataframeItem['date_of_birth']):
-        subject['date_of_birth'] = dataframeItem['date_of_birth']
-    if dataframeItem.get('birth_sex', None) and notNull(dataframeItem['birth_sex']):
-        subject['sex'] = Ontologies['sex'][dataframeItem['birth_sex'].lower()]
-    if dataframeItem.get('race',None) and notNull(dataframeItem['race']):
-        subject['race'] = Ontologies['race'][dataframeItem['race'].lower()]
-    if dataframeItem.get('ethnicity',None) and notNull(dataframeItem['ethnicity']):
-        subject['ethnicity'] = Ontologies['ethnicity'][dataframeItem['ethnicity'].lower()]
+def mcodepacket_build(dataframe_item, counter_var):
+    mcodepacket = return_mcodepacket(dataframe_item['identifier'])
+
+    mcodepacket['subject'] = subject_build(dataframe_item)
+
+    mcodepacket['genomics_report'] = genomics_report_build(dataframe_item, counter_var)
+
+    mcodepacket['cancer_condition'] = cancer_condition_build(dataframe_item, counter_var)
+
+    mcodepacket['cancer_related_procedures'] = cancer_related_procedures_build(dataframe_item, counter_var)
+
+    mcodepacket['medication_statement'] = medication_statement_build(dataframe_item, counter_var)
+
+    if dataframe_item.get('date_of_death', None) and not_null(dataframe_item['date_of_death']):
+        mcodepacket['date_of_death'] = dataframe_item['date_of_death']
+
+    mcodepacket['tumor_marker'] = tumor_marker_build(dataframe_item, counter_var)
+
+    if dataframe_item.get('cancer_disease_status', None) and not_null(dataframe_item['cancer_disease_status']):
+        if dataframe_item['cancer_disease_status'] in ontologies['cancer_disease_status']:
+            cancer_disease_status = ontologies['cancer_disease_status'][dataframe_item['cancer_disease_status'].lower()]
+            mcodepacket['cancer_disease_status'] = cancer_disease_status
+
+    return (mcodepacket)
+
+
+def subject_build(dataframe_item):
+    subject = return_subject(dataframe_item['identifier'])
+
+    if dataframe_item.get('date_of_birth', None) and not_null(dataframe_item['date_of_birth']):
+        subject['date_of_birth'] = dataframe_item['date_of_birth']
+    if dataframe_item.get('birth_sex', None) and not_null(dataframe_item['birth_sex']):
+        subject['sex'] = ontologies['sex'][dataframe_item['birth_sex'].lower()]
+    if dataframe_item.get('race', None) and not_null(dataframe_item['race']):
+        subject['race'] = ontologies['race'][dataframe_item['race'].lower()]
+    if dataframe_item.get('ethnicity', None) and not_null(dataframe_item['ethnicity']):
+        subject['ethnicity'] = ontologies['ethnicity'][dataframe_item['ethnicity'].lower()]
     subject['comorbid_condition'] = {
-        'code':{
+        'code': {
             'id': 'SNOMED:103329007',
             'label': 'Not available'
         }
     }
-    if dataframeItem.get('ecog_performance_status',None) and notNull(dataframeItem['ecog_performance_status']):
-        subject['ecog_performance_status'] = Ontologies['ecog_performance_status'][dataframeItem['ecog_performance_status']]
+    if dataframe_item.get('ecog_performance_status', None) and not_null(dataframe_item['ecog_performance_status']):
+        subject['ecog_performance_status'] = ontologies['ecog_performance_status'][dataframe_item['ecog_performance_status']]
     subject['karnofsky_performance_status'] = {
         'id': 'KARNOFSKY: Not available',
         'label': 'Not available'
     }
-    
-    for vitalItem in vitalSigns:
-        if dataframeItem.get(vitalItem, None) and notNull(dataframeItem[vitalItem]):
-            subject['extra_properties'][vitalItem]=dataframeItem[vitalItem]
 
-    mCodePacket['subject'] = subject
-
-    genomicsReport = returnGenomicsReport(counterVar)
+    for vital_item in vital_signs:  #add all vital signs into subject extra properties
+        if dataframe_item.get(vital_item, None) and not_null(dataframe_item[vital_item]):
+            subject['extra_properties'][vital_item] = dataframe_item[vital_item]
     
-    geneticSpecimen = []
-    if dataframeItem.get('performing_organization_name',None) and notNull(dataframeItem['performing_organization_name']):
-        genomicsReport['performing_organization_name'] = dataframeItem['performing_organization_name']
-    if dataframeItem.get('issued',None) and notNull(dataframeItem['issued']):
-        genomicsReport['issued']=dataframeItem['issued']
-    else: genomicsReport['issued']='Unknown'
-    if dataframeItem.get('genetic_specimen',None) and notNull(dataframeItem['genetic_specimen']):
-        tempCounter1 = 0
-        for i in range(len(dataframeItem['genetic_specimen'])):
-            geneticSpecimen.append({
-                'id': str(counterVar) + '-' + str(tempCounter1),
+    return subject
+
+
+def genomics_report_build(dataframe_item, counter_var):
+    genomics_report = return_genomics_report(counter_var)
+
+    if dataframe_item.get('performing_organization_name', None) and not_null(dataframe_item['performing_organization_name']):
+        genomics_report['performing_organization_name'] = dataframe_item['performing_organization_name']
+    if dataframe_item.get('issued', None) and not_null(dataframe_item['issued']):
+        genomics_report['issued'] = dataframe_item['issued']
+    else:
+        genomics_report['issued'] = 'Unknown'
+
+    genetic_specimen_build(dataframe_item, genomics_report, counter_var)
+
+    genetic_variant_build(dataframe_item, genomics_report, counter_var)
+
+    genetic_region_studied = return_genetic_region_studied(counter_var)
+    gene_region_add = False
+    gene_region_add = genetic_mutation_build(dataframe_item, genetic_region_studied, gene_region_add)
+    gene_region_add = gene_studied_build(dataframe_item, genetic_region_studied, gene_region_add)
+
+    if gene_region_add:
+        genomics_report['genetic_region_studied'] = genetic_region_studied
+
+    return genomics_report
+
+
+def genetic_specimen_build(dataframe_item, genomics_report, counter_var):
+    genetic_specimen = []
+    if dataframe_item.get('genetic_specimen', None) and not_null(dataframe_item['genetic_specimen']):
+        temp_counter1 = 0
+        for i in range(len(dataframe_item['genetic_specimen'])):    #for all array form data elements, iterate through list and append
+            genetic_specimen.append({
+                'id': str(counter_var) + '-' + str(temp_counter1),
                 'collection_body': {
-                    'id': generateGeneticSpecimen(dataframeItem['collection_body_site'][i],apiKey)[0],
-                    'label': generateGeneticSpecimen(dataframeItem['collection_body_site'][i],apiKey)[1]
+                    'id': generate_genetic_specimen(dataframe_item['collection_body_site'][i], api_key)[0],
+                    'label': generate_genetic_specimen(dataframe_item['collection_body_site'][i], api_key)[1]
                 }
             })
-            tempCounter1 += 1
+            temp_counter1 += 1
 
-            if dataframeItem.get('specimen_type',None) and dataframeItem['specimen_type'] in Ontologies['specimen_type']:
-                geneticSpecimen[-1]['specimen_type'] = Ontologies['specimen_type'][dataframeItem['specimen_type'][i].lower()]
+            if dataframe_item.get('specimen_type', None) and dataframe_item['specimen_type'] in ontologies['specimen_type']:
+                genetic_specimen[-1]['specimen_type'] = ontologies['specimen_type'][dataframe_item['specimen_type'][i].lower()]
             else:
-                geneticSpecimen[-1]['specimen_type'] = {
-                        'id': 'HL7:...',
-                        'label': 'No suggested value'
+                genetic_specimen[-1]['specimen_type'] = {
+                    'id': 'HL7:...',
+                    'label': 'No suggested value'
                 }
-                
-        genomicsReport['genetic_specimen'] = geneticSpecimen
-    
-    if dataframeItem.get('genetic_variant', None) and notNull(dataframeItem['genetic_variant']):
-        if dataframeItem['variant_data_value'] in Ontologies['variant_data_value']:
-            genomicsReport['genetic_variant'] = {
-                'id': str(counterVar),
-                'data_value': Ontologies['variant_data_value'][dataframeItem['variant_data_value'].lower()]
+        genomics_report['genetic_specimen'] = genetic_specimen
+
+
+def genetic_variant_build(dataframe_item, genomics_report, counter_var):
+    if dataframe_item.get('genetic_variant', None) and not_null(dataframe_item['genetic_variant']):
+        if dataframe_item['variant_data_value'] in ontologies['variant_data_value']:
+            genomics_report['genetic_variant'] = {
+                'id': str(counter_var),
+                'data_value': ontologies['variant_data_value'][dataframe_item['variant_data_value'].lower()]
             }
-        else: 
-            genomicsReport['genetic_variant'] = {
-                'id':str(counterVar),
+        else:
+            genomics_report['genetic_variant'] = {
+                'id': str(counter_var),
                 'data_value': {
                     'id': 'LOINC:LA4489-6',
                     'label': 'Unknown'
                 }
             }
 
-    geneticRegionStudied = returnGeneticRegionStudied(counterVar)
-    geneRegionAdd=False
 
-    if dataframeItem.get('gene_mutation',None) and notNull(dataframeItem['gene_mutation']):
-        geneRegionAdd = True
-        geneMutation = []
-        for i in range(len(dataframeItem['gene_mutation'])):
-            result = hgvsApiESearch(dataframeItem['gene_mutation'][i], email)
+def genetic_mutation_build(dataframe_item, genetic_region_studied, genetic_region_add):
+    if dataframe_item.get('gene_mutation', None) and not_null(dataframe_item['gene_mutation']):
+        gene_region_add = True
+        gene_mutation = []
+        for i in range(len(dataframe_item['gene_mutation'])):
+            result = hgvs_api_esearch(dataframe_item['gene_mutation'][i], email)
             if len(result['IdList']) > 0:
-                geneMutation.append({
-                    'id' : "HGVS:" + result['IdList'][0],
-                    'label': hgvsApiESummary(result['IdList'][0], email)
+                gene_mutation.append({
+                    'id': 'HGVS:' + result['IdList'][0],
+                    'label': hgvs_api_esummary(result['IdList'][0], email)
                 })
-        geneticRegionStudied['gene_mutation'] = geneMutation
+        genetic_region_studied['gene_mutation'] = gene_mutation
+    return gene_region_add
 
-    if dataframeItem.get('gene_studied',None) and notNull(dataframeItem['gene_studied']):
-        geneRegionAdd = True
-        geneStudied = []
-        for i in range(len(dataframeItem['gene_studied'])):
-            result = hgncApi(dataframeItem['gene_studied'][i])
+
+def gene_studied_build(dataframe_item, genetic_region_studied, gene_region_add):
+    if dataframe_item.get('gene_studied', None) and not_null(dataframe_item['gene_studied']):
+        gene_region_add = True
+        gene_studied = []
+        for i in range(len(dataframe_item['gene_studied'])):
+            result = hgnc_api(dataframe_item['gene_studied'][i])
             if result['response']['numFound'] >= 1:
-                geneStudied.append({
-                    'id' : result['response']['docs'][0]['hgnc_id'],
+                gene_studied.append({
+                    'id': result['response']['docs'][0]['hgnc_id'],
                     'label': result['response']['docs'][0]['symbol']
                 })
-        geneticRegionStudied['gene_studied'] = geneStudied
-                    
-    if geneRegionAdd:
-        genomicsReport['genetic_region_studied'] = geneticRegionStudied
-    
-    mCodePacket['genomics_report'] = genomicsReport
-    
-    cancerCondition = returnCancerCondition(counterVar)
-    
-    if dataframeItem.get('date_of_diagnosis',None) and notNull(dataframeItem['date_of_diagnosis']):
-        cancerCondition['date_of_diagnosis'] = dataframeItem['date_of_diagnosis']
-    if dataframeItem.get('history_morphology_behavior',None) and notNull(dataframeItem['history_morphology_behavior']):
-        behaviorTerm = dataframeItem['history_morphology_behavior'].replace(' ','+')
-        needBreak = False
-        for behaviorSubtree in subtreeDict['history_morphology_behaviour']:
-            termCollection = get_json(get_url('SNOMEDCT',behaviorTerm,False,subtreeDict['history_morphology_behaviour'][behaviorSubtree]),apiKey)['collection']
-            if len(termCollection) > 0:
-                for listItem in termCollection:
-                    if 'notation' in listItem:
-                        identification = 'SNOMED:' + listItem['notation']
-                        label = listItem['prefLabel']
-                        needBreak = True
+        genetic_region_studied['gene_studied'] = gene_studied
+    return gene_region_add
+
+
+def cancer_condition_build(dataframe_item, counter_var):
+    cancer_condition = return_cancer_condition(counter_var)
+
+    if dataframe_item.get('date_of_diagnosis', None) and not_null(dataframe_item['date_of_diagnosis']):
+        cancer_condition['date_of_diagnosis'] = dataframe_item['date_of_diagnosis']
+    if dataframe_item.get('history_morphology_behavior', None) and not_null(dataframe_item['history_morphology_behavior']):
+        behavior_term = dataframe_item['history_morphology_behavior'].replace(
+            ' ', '+')
+        need_break = False
+        for behavior_subtree in subtree_dict['history_morphology_behaviour']:   #several potential subtrees for ontology search
+            term_colleciion = get_json(get_url('SNOMEDCT', behavior_term, False, subtree_dict['history_morphology_behaviour'][behavior_subtree]), api_key)['collection']
+            if len(term_colleciion) > 0:    #only use ontologies when 1 or more concepts are found
+                for list_item in term_colleciion:
+                    if 'notation' in list_item:
+                        identification = 'SNOMED:' + list_item['notation']
+                        label = list_item['prefLabel']
+                        need_break = True
                         break
-            if needBreak:
+            if need_break:
                 break
-            if behaviorSubtree == 'subtreeThree':
+            if behavior_subtree == 'subtreeThree':  #if on last subtree and still no results, return unknown
                 identification = 'SNOMED:261665006'
                 label = 'Unknown'
-        cancerCondition['history_morphological_behavior'] = {
+        cancer_condition['history_morphological_behavior'] = {
             'id': identification,
             'label': label
         }
     
-    
-    mCodePacket['cancer_condition'] = cancerCondition
-    
-    cancerRelatedProcedures = returnCancerRelatedProcedures(counterVar)
-    
-    if dataframeItem.get('body_site',None) and notNull(dataframeItem['body_site']):
+    return cancer_condition
+
+def cancer_related_procedures_build(dataframe_item, counter_var):
+    cancer_related_procedures = return_cancer_related_procedures(counter_var)
+
+    if dataframe_item.get('body_site', None) and not_null(dataframe_item['body_site']):
         bodySite = []
-        for i in range(len(dataframeItem['body_site'])):
+        for i in range(len(dataframe_item['body_site'])):
             bodySite.append({
-                'id': generateBodySite(dataframeItem['body_site'][i],apiKey)[0],
-                'label': generateBodySite(dataframeItem['body_site'][i],apiKey)[1]
+                'id': generate_body_site(dataframe_item['body_site'][i], api_key)[0],
+                'label': generate_body_site(dataframe_item['body_site'][i], api_key)[1]
             })
-            
-        cancerRelatedProcedures['body_site'] = bodySite
+
+        cancer_related_procedures['body_site'] = bodySite
     
-    mCodePacket['cancer_related_procedures'] = cancerRelatedProcedures
-    
-    medicationStatement = []
-    if dataframeItem.get('medication',None) and notNull(dataframeItem['medication']):
-        tempCounter2 = 0
-        for medicine in dataframeItem['medication']:
-            medicationStatement.append({
-                'id': str(counterVar) + '-' + str(tempCounter2),
+    return cancer_related_procedures
+
+def medication_statement_build(dataframe_item, counter_var):
+    medication_statement = []
+    if dataframe_item.get('medication', None) and not_null(dataframe_item['medication']):
+        temp_counter2 = 0
+        for medicine in dataframe_item['medication']:
+            medication_statement.append({
+                'id': str(counter_var) + '-' + str(temp_counter2),
                 'medication_code': {
-                    'id': generateMedication(medicine,apiKey)[0],
-                    'label': generateMedication(medicine,apiKey)[1]
+                    'id': generate_medication(medicine, api_key)[0],
+                    'label': generate_medication(medicine, api_key)[1]
                 }
             })
-            tempCounter2 += 1
+            temp_counter2 += 1
     else:
-        medicationStatement.append({
-            'id': str(counterVar),
+        medication_statement.append({
+            'id': str(counter_var),
             'medication_code': {
                 'id': 'RxNorm:Unknown',
-                'label': 'Unknown' 
+                'label': 'Unknown'
             }
         })
     
-    mCodePacket['medication_statement'] = medicationStatement
-    
-    if dataframeItem.get('date_of_death',None) and notNull(dataframeItem['date_of_death']):
-        mCodePacket['date_of_death'] = dataframeItem['date_of_death']
-    
-    tumorMarker = []
-    tumorExtra={}
-    extra=False
-    for extraItem in labResults:
-        if dataframeItem.get(extraItem,None) and notNull(dataframeItem[extraItem]):
-                tumorExtra[extraItem] = dataframeItem[extraItem]
-                extra=True
+    return medication_statement
 
-    if dataframeItem.get('tumor_marker_data_value',None) and notNull(dataframeItem['tumor_marker_data_value']):
-        tempCounter3 = 0
-        for data in dataframeItem['tumor_marker_data_value']:
-            tumorMarker.append(returnTumorMarker(counterVar, tempCounter3, dataframeItem['identifier'], True))
-            tumorMarker = generateTumorMarker(data, tumorMarker,apiKey)
+def tumor_marker_build(dataframe_item, counter_var):
+    tumor_marker = []
+    tumor_extra = {}
+    extra = False
+    for extra_item in lab_results:  #add lab_result data elements to tumor marker extra properties
+        if dataframe_item.get(extra_item, None) and not_null(dataframe_item[extra_item]):
+            tumor_extra[extra_item] = dataframe_item[extra_item]
+            extra = True
+
+    if dataframe_item.get('tumor_marker_data_value', None) and not_null(dataframe_item['tumor_marker_data_value']):
+        temp_counter3 = 0
+        for data in dataframe_item['tumor_marker_data_value']:
+            tumor_marker.append(return_tumor_marker(
+                counter_var, temp_counter3, dataframe_item['identifier'], True))
+            tumor_marker = generate_tumor_marker(data, tumor_marker, api_key)
 
             if extra:
-                tumorMarker[-1]['extra_properties']=tumorExtra
-            tempCounter3 += 1
-            
+                tumor_marker[-1]['extra_properties'] = tumor_extra
+            temp_counter3 += 1
+
     else:
-        tumorMarker.append(returnTumorMarker(counterVar, 0, dataframeItem['identifier'], False))
-        
+        tumor_marker.append(return_tumor_marker(
+            counter_var, 0, dataframe_item['identifier'], False))
+
         if extra:
-            tumorMarker[-1]['extra_properties'] = tumorExtra
-    
-    mCodePacket['tumor_marker'] = tumorMarker
-    
-    if dataframeItem.get('cancer_disease_status',None) and notNull(dataframeItem['cancer_disease_status']):
-        if dataframeItem['cancer_disease_status'] in Ontologies['cancer_disease_status']:
-            cancerDiseaseStatus = Ontologies['cancer_disease_status'][dataframeItem['cancer_disease_status'].lower()]
-            mCodePacket['cancer_disease_status'] = cancerDiseaseStatus
-    
-    return (mCodePacket)
+            tumor_marker[-1]['extra_properties'] = tumor_extra
+
+    return tumor_marker
+
 
 def main():
-    genomicsID = 1000
-    dfOg = pd.read_excel(dataset, sheet_name=None, dtype=str)
-    dfList=[]
-    for page in dfOg:
-        dfList.append(mCodeMapping(dfOg[page]))
-    
-    mCodeDataframe = combineSheets(dfList)
-    mCodeDataframe = mCodeDataframe.fillna("nan")
-    mCodeList=[]
-    for index, row in mCodeDataframe.iterrows():
-        mCodeList.append(mCodePacketBuild(row,genomicsID))
-        genomicsID+=1
-    print (mCodeList)
-    with open('mCodePacket.json', 'w') as f:
-        json.dump(mCodeList, f, indent=4)
-        
+    genomics_id = 1000  #set up unique identifiers for data elements in mcode data
+    df_og = pd.read_excel(dataset, sheet_name=None, dtype=str)  #read sheet from given data pathway
+    df_list = []
+    for page in df_og:
+        df_list.append(mcode_mapping(df_og[page]))  #append all processed mcode dataframes to a list
+
+    mcode_dataframe = combine_sheets(df_list)   #combine sheets
+    mcode_dataframe = mcode_dataframe.fillna('nan')
+    mcode_list = []
+    for index, row in mcode_dataframe.iterrows():   #build mcode data model from combined dataframe
+        mcode_list.append(mcodepacket_build(row, genomics_id))
+        genomics_id += 1
+    print(mcode_list)
+    with open('mCodePacket.json', 'w') as f:    #write to json file for ingestion
+        json.dump(mcode_list, f, indent=4)
+
 
 if __name__ == '__main__':
     main()
-
