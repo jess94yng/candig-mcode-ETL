@@ -9,27 +9,26 @@ df = pd.read_excel('data/pytest_data_v1.xlsx', dtype=str)  #read sheet from give
 print(df)
 df_drop_na = df.fillna('nan')
 df_modified = df_drop_na.drop_duplicates(subset='Subject')
-# df_modified = df_modified.fillna('nan')
 df_mapped = mcode_mapping(df)
 
-print (df_mapped['medication'])
-print(df['THER_TX_NAME'])
-counter = 0
-for index, row in df_mapped.iterrows():
-    print(type(row['gene_mutation']))
 
+# function to count number of array elements in original dataframe
 def count_array_length(mcode_item):
     counter = 0
     for index, row in df_drop_na.iterrows():
         counter += len(row[mcode_dict[mcode_item]].split(','))
     return counter
 
+
+# function to count number of nan elements in original dataframe
 def count_nan(mcode_item):
     counter = 0
     for index, row in df_drop_na.iterrows():
         counter += row[mcode_dict[mcode_item]].count('nan')
     return counter
 
+
+# function to count number of array elements in mapped dataframe
 def count_mapped_array(mcode_item):
     counter = 0
     for index, row in df_mapped.iterrows():
@@ -37,9 +36,12 @@ def count_mapped_array(mcode_item):
     return counter
 
 
+# test for presence of duplicates
 def test_duplicate():
     assert any(df_mapped.duplicated(subset=['identifier'], keep=False)) == False
 
+
+#test for correct mapping of elements
 @pytest.mark.parametrize('mcode', valid_mcode)
 def test_mapping(mcode):
     if mcode in df_mapped and mcode not in possible_multi_val and mcode!= 'race':
@@ -49,6 +51,8 @@ def test_mapping(mcode):
         assert count_mapped_array(mcode) <= count_array_length(mcode), 'array fields have more values than expected'
         assert count_mapped_array(mcode) >= count_array_length(mcode) - count_nan(mcode), 'array fields have less values than expected'
 
+
+# test for array data type in array fields
 @pytest.mark.parametrize('multival', possible_multi_val)
 def test_array(multival):
     if multival in df_mapped:

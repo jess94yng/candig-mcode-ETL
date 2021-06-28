@@ -12,7 +12,7 @@ for page in df:
 mcode_dataframe = combine_sheets(df_list)   #combine sheets
 mcode_dataframe = mcode_dataframe.fillna('nan')
 
-print(mcode_dataframe)
 
+# test for duplicated identifiers
 def test_combine():
     assert any(mcode_dataframe.duplicated(subset=['identifier'], keep=False)) == False

@@ -2,38 +2,31 @@ import pytest
 import json
 from os import path
 
-# try:
-#     with open('mCodePacket.json') as f:
-#         data = json.load(f)
-# except:
-
-# def test_file_exists(file_name):
-#     assert path.exists(file_name), 'please ensure your mcode json file exists and you have entered it via command line'
-
 f = open('mCodePacket.json')
 data = json.load(f)
-# def open_file(file_name):
-#     f = open(file_name)
-#     json_data = json.load(f)
-#     return json_data
 
 
+# test overall data type
 def test_data_type():
     assert isinstance(data, list), 'data must be array'
     assert all(isinstance(item, dict) for item in data), 'data array elements must be json object'
 
 
+# function to check if element is in a data structure
 def is_in_data(element, item):
     if element in item:
         return True
     return False
 
 
+# function to check if element is a certain datatype
 def is_datatype(element, datatype):
     if isinstance(element, datatype):
         return True
     return False
 
+
+# test for presence of all required mcode data elements
 @pytest.mark.parametrize('patients', data)
 @pytest.mark.dependency(name = 'test_mcode_fields')
 def test_mcode_fields(patients):
@@ -47,6 +40,7 @@ def test_mcode_fields(patients):
     assert is_in_data('tumor_marker', patients), 'required mcode tumor marker field missing'
 
 
+# test for correct data types of mcode data elements
 @pytest.mark.parametrize('mcode_data_element', [
     'meta_data',
     'id',
@@ -68,6 +62,7 @@ def test_mcode_format(patients, mcode_data_element):
         assert is_datatype(patients[mcode_data_element], dict), 'wrong mcode field data type'
 
 
+# test for presence of all required subject data elements
 @pytest.mark.parametrize('patients', data)
 @pytest.mark.dependency(name = 'test_subject_required_fields')
 def test_subject_required_fields(patients):
@@ -78,7 +73,7 @@ def test_subject_required_fields(patients):
     assert is_in_data('name', patients['subject']['extra_properties']), 'required subject name field missing'
     assert is_in_data('administrative_gender', patients['subject']['extra_properties']), 'required subject administrative gender field missing'
 
-
+# test for correct data types of subject data elements
 @pytest.mark.parametrize('subject_data_element', [
     'id',
     'date_of_birth',
@@ -101,14 +96,13 @@ def test_subject_format(patients, subject_data_element):
             assert is_datatype(patients['subject'][subject_data_element], dict), 'wrong subject field data type'
 
 
+# test for presence of all required genomics report data elements
 @pytest.mark.parametrize('genomics_data_element', [
     'id',
     'code',
     'issued'
 ])
 @pytest.mark.parametrize('patients', data)
-# @pytest.mark.parametrize('specimen_element', patients['genomics_report']['genetic_specimen'])
-# how to avoid using loops?
 @pytest.mark.dependency(name = 'test_genomics_report_required_fields')
 def test_genomics_report_required_fields(patients, genomics_data_element):
     assert is_in_data('genomics_report', patients), 'required genomics report field missing'
@@ -119,6 +113,7 @@ def test_genomics_report_required_fields(patients, genomics_data_element):
             assert is_in_data('specimen_type', specimen_item), 'required genomics report genetic specimen type field missing'
 
 
+# test for correct data types of genomics report data elements
 @pytest.mark.parametrize('report_data_element', [
     'id',
     'code',
@@ -141,6 +136,7 @@ def test_genomics_report_format(patients, report_data_element):
             assert is_datatype(patients['genomics_report'][report_data_element], dict), 'wrong genomics report field data type'
 
 
+# test for presence of all required cancer condition data elements
 @pytest.mark.parametrize('patients', data)
 @pytest.mark.dependency(name = 'test_cancer_condition_required_fields')
 def test_cancer_condition_required_fields(patients):
@@ -148,6 +144,7 @@ def test_cancer_condition_required_fields(patients):
     assert is_in_data('code', patients['cancer_condition']), 'required cancer condition code field missing'
 
 
+# test for correct data types of cancer condition data elements
 @pytest.mark.parametrize('condition_data_element', [
     'id',
     'condition_type',
@@ -167,6 +164,7 @@ def test_cancer_condition_format(patients, condition_data_element):
             assert is_datatype(patients['cancer_condition'][condition_data_element], dict), 'wrong cancer condition field data type'
 
 
+# test for presence of all required cancer related procedure data elements
 @pytest.mark.parametrize('patients', data)
 @pytest.mark.dependency(name = 'test_cancer_related_procedures_required_fields')
 def test_cancer_related_procedures_required_fields(patients):
@@ -174,6 +172,7 @@ def test_cancer_related_procedures_required_fields(patients):
     assert is_in_data('code',patients['cancer_related_procedures']), 'required cancer related procedures code field missing'
 
 
+# test for correct data types of cancer related procedure data elements
 @pytest.mark.parametrize('procedure_data_element', [
     'id',
     'procedure_type',
@@ -193,12 +192,14 @@ def test_cancer_procedure_format(patients, procedure_data_element):
             assert is_datatype(patients['cancer_related_procedures'][procedure_data_element], dict), 'wrong cancer related procedures field data type'
 
 
+# test for presence of all required medication statement required fields
 @pytest.mark.parametrize('patients', data)
 @pytest.mark.dependency(name = 'test_medication_statement_required_fields')
 def test_medication_statement_required_fields(patients):
     assert is_in_data('medication_statement', patients), 'required medication statement field missing'
 
 
+# test for correct data types of medication statement data elements
 @pytest.mark.parametrize('medication_data_element', [
     'id',
     'medication_code',
@@ -214,6 +215,7 @@ def test_medication_format(patients, medication_data_element):
             assert is_datatype(patients['medication_statement'][medication_data_element], dict), 'wrong medication code field data type'
 
 
+# test for presence of all required tumor marker data elements
 @pytest.mark.parametrize('patients', data)
 @pytest.mark.dependency(name = 'test_tumor_marker_required_fields')
 def test_tumor_marker_required_fields(patients):
@@ -223,6 +225,7 @@ def test_tumor_marker_required_fields(patients):
         assert is_in_data('tumor_marker_code', tumor_item), 'required tumor marker code field missing'  
 
 
+# test for correct data types of tumor marker data elements
 @pytest.mark.parametrize('tumor_data_element', [
     'id',
     'individual',
