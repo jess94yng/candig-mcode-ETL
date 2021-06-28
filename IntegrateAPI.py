@@ -50,7 +50,7 @@ def get_url(ontology, term, exact_match, subtree_url):
 #specific subtrees for ontologies
 subtree_dict = {
     'collection_body': 'http%3A%2F%2Fpurl.bioontology.org%2Fontology%2FSNOMEDCT%2F442083009',
-    'history_morphology_behaviour': {
+    'histology_morphology_behaviour': {
         'subtreeOne': 'http%3A%2F%2Fpurl.bioontology.org%2Fontology%2FSNOMEDCT%2F367651003',
         'subtreeTwo': 'http%3A%2F%2Fpurl.bioontology.org%2Fontology%2FSNOMEDCT%2F399919001',
         'subtreeThree': 'http%3A%2F%2Fpurl.bioontology.org%2Fontology%2FSNOMEDCT%2F399983006'

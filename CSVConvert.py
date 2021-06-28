@@ -15,14 +15,16 @@ import argparse
 # Data_path: path to dataset for ingestion/testing
 # BioPortal_API_Key: found on BioPortal account, used to access BioPortal API
 # Email: organizational email used to access NCBI clinvar API
-parser = argparse.ArgumentParser()
-parser.add_argument('--Data_path', type=str, required=True)
-parser.add_argument('--BioPortal_API_Key', type=str, required=True)
-parser.add_argument('--Email', type=str, required=True)
-args = parser.parse_args()
-dataset = args.Data_path
-api_key = args.BioPortal_API_Key
-email = args.Email
+
+# dataset = 'data/test_data.xlsx'
+# email = 'jessica.yang@uhn.ca'
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--Data_path', type=str, required=True)
+    parser.add_argument('--BioPortal_API_Key', type=str, required=True)
+    parser.add_argument('--Email', type=str, required=True)
+    args = parser.parse_args()
+    return args
 
 
 # test if value is null
@@ -68,6 +70,7 @@ def eliminate_duplicate(input_dataframe):
 def mcode_mapping(input_dataframe):
 
     mcode_csv_list = []
+    input_dataframe = input_dataframe.dropna(axis = 'index', how = 'all')
 
     for index, row in input_dataframe.iterrows():   #iterate through rows of dataframe
         data_element_list = []
@@ -111,23 +114,23 @@ def combine_sheets(list_dataframe):
 
 
 # Organize dataframe into mCode model
-def mcodepacket_build(dataframe_item, counter_var):
+def mcodepacket_build(dataframe_item, counter_var, api_key, email):
     mcodepacket = return_mcodepacket(dataframe_item['identifier'])
 
     mcodepacket['subject'] = subject_build(dataframe_item)
 
-    mcodepacket['genomics_report'] = genomics_report_build(dataframe_item, counter_var)
+    mcodepacket['genomics_report'] = genomics_report_build(dataframe_item, counter_var, api_key, email)
 
-    mcodepacket['cancer_condition'] = cancer_condition_build(dataframe_item, counter_var)
+    mcodepacket['cancer_condition'] = cancer_condition_build(dataframe_item, counter_var, api_key)
 
-    mcodepacket['cancer_related_procedures'] = cancer_related_procedures_build(dataframe_item, counter_var)
+    mcodepacket['cancer_related_procedures'] = cancer_related_procedures_build(dataframe_item, counter_var, api_key)
 
-    mcodepacket['medication_statement'] = medication_statement_build(dataframe_item, counter_var)
+    mcodepacket['medication_statement'] = medication_statement_build(dataframe_item, counter_var, api_key)
 
     if dataframe_item.get('date_of_death', None) and not_null(dataframe_item['date_of_death']):
         mcodepacket['date_of_death'] = dataframe_item['date_of_death']
 
-    mcodepacket['tumor_marker'] = tumor_marker_build(dataframe_item, counter_var)
+    mcodepacket['tumor_marker'] = tumor_marker_build(dataframe_item, counter_var, api_key)
 
     if dataframe_item.get('cancer_disease_status', None) and not_null(dataframe_item['cancer_disease_status']):
         if dataframe_item['cancer_disease_status'] in ontologies['cancer_disease_status']:
@@ -156,8 +159,13 @@ def subject_build(dataframe_item):
     }
     if dataframe_item.get('ecog_performance_status', None) and not_null(dataframe_item['ecog_performance_status']):
         subject['ecog_performance_status'] = ontologies['ecog_performance_status'][dataframe_item['ecog_performance_status']]
-    subject['karnofsky_performance_status'] = {
+    subject['karnofsky'] = {
         'id': 'KARNOFSKY: Not available',
+        'label': 'Not available'
+    }
+
+    subject['extra_properties']['administrative_gender'] = {
+        'id': 'HL7: C0686905',
         'label': 'Not available'
     }
 
@@ -168,7 +176,7 @@ def subject_build(dataframe_item):
     return subject
 
 
-def genomics_report_build(dataframe_item, counter_var):
+def genomics_report_build(dataframe_item, counter_var, api_key, email):
     genomics_report = return_genomics_report(counter_var)
 
     if dataframe_item.get('performing_organization_name', None) and not_null(dataframe_item['performing_organization_name']):
@@ -178,13 +186,13 @@ def genomics_report_build(dataframe_item, counter_var):
     else:
         genomics_report['issued'] = 'Unknown'
 
-    genetic_specimen_build(dataframe_item, genomics_report, counter_var)
+    genetic_specimen_build(dataframe_item, genomics_report, counter_var, api_key)
 
     genetic_variant_build(dataframe_item, genomics_report, counter_var)
 
     genetic_region_studied = return_genetic_region_studied(counter_var)
     gene_region_add = False
-    gene_region_add = genetic_mutation_build(dataframe_item, genetic_region_studied, gene_region_add)
+    gene_region_add = genetic_mutation_build(dataframe_item, genetic_region_studied, gene_region_add, email)
     gene_region_add = gene_studied_build(dataframe_item, genetic_region_studied, gene_region_add)
 
     if gene_region_add:
@@ -193,7 +201,7 @@ def genomics_report_build(dataframe_item, counter_var):
     return genomics_report
 
 
-def genetic_specimen_build(dataframe_item, genomics_report, counter_var):
+def genetic_specimen_build(dataframe_item, genomics_report, counter_var, api_key):
     genetic_specimen = []
     if dataframe_item.get('genetic_specimen', None) and not_null(dataframe_item['genetic_specimen']):
         temp_counter1 = 0
@@ -234,7 +242,7 @@ def genetic_variant_build(dataframe_item, genomics_report, counter_var):
             }
 
 
-def genetic_mutation_build(dataframe_item, genetic_region_studied, genetic_region_add):
+def genetic_mutation_build(dataframe_item, genetic_region_studied, gene_region_add, email):
     if dataframe_item.get('gene_mutation', None) and not_null(dataframe_item['gene_mutation']):
         gene_region_add = True
         gene_mutation = []
@@ -264,17 +272,17 @@ def gene_studied_build(dataframe_item, genetic_region_studied, gene_region_add):
     return gene_region_add
 
 
-def cancer_condition_build(dataframe_item, counter_var):
+def cancer_condition_build(dataframe_item, counter_var, api_key):
     cancer_condition = return_cancer_condition(counter_var)
 
     if dataframe_item.get('date_of_diagnosis', None) and not_null(dataframe_item['date_of_diagnosis']):
         cancer_condition['date_of_diagnosis'] = dataframe_item['date_of_diagnosis']
-    if dataframe_item.get('history_morphology_behavior', None) and not_null(dataframe_item['history_morphology_behavior']):
-        behavior_term = dataframe_item['history_morphology_behavior'].replace(
+    if dataframe_item.get('histology_morphology_behavior', None) and not_null(dataframe_item['histology_morphology_behavior']):
+        behavior_term = dataframe_item['histology_morphology_behavior'].replace(
             ' ', '+')
         need_break = False
-        for behavior_subtree in subtree_dict['history_morphology_behaviour']:   #several potential subtrees for ontology search
-            term_colleciion = get_json(get_url('SNOMEDCT', behavior_term, False, subtree_dict['history_morphology_behaviour'][behavior_subtree]), api_key)['collection']
+        for behavior_subtree in subtree_dict['histology_morphology_behaviour']:   #several potential subtrees for ontology search
+            term_colleciion = get_json(get_url('SNOMEDCT', behavior_term, False, subtree_dict['histology_morphology_behaviour'][behavior_subtree]), api_key)['collection']
             if len(term_colleciion) > 0:    #only use ontologies when 1 or more concepts are found
                 for list_item in term_colleciion:
                     if 'notation' in list_item:
@@ -287,14 +295,14 @@ def cancer_condition_build(dataframe_item, counter_var):
             if behavior_subtree == 'subtreeThree':  #if on last subtree and still no results, return unknown
                 identification = 'SNOMED:261665006'
                 label = 'Unknown'
-        cancer_condition['history_morphological_behavior'] = {
+        cancer_condition['histology_morphological_behavior'] = {
             'id': identification,
             'label': label
         }
     
     return cancer_condition
 
-def cancer_related_procedures_build(dataframe_item, counter_var):
+def cancer_related_procedures_build(dataframe_item, counter_var, api_key):
     cancer_related_procedures = return_cancer_related_procedures(counter_var)
 
     if dataframe_item.get('body_site', None) and not_null(dataframe_item['body_site']):
@@ -309,7 +317,7 @@ def cancer_related_procedures_build(dataframe_item, counter_var):
     
     return cancer_related_procedures
 
-def medication_statement_build(dataframe_item, counter_var):
+def medication_statement_build(dataframe_item, counter_var, api_key):
     medication_statement = []
     if dataframe_item.get('medication', None) and not_null(dataframe_item['medication']):
         temp_counter2 = 0
@@ -333,7 +341,7 @@ def medication_statement_build(dataframe_item, counter_var):
     
     return medication_statement
 
-def tumor_marker_build(dataframe_item, counter_var):
+def tumor_marker_build(dataframe_item, counter_var, api_key):
     tumor_marker = []
     tumor_extra = {}
     extra = False
@@ -363,7 +371,11 @@ def tumor_marker_build(dataframe_item, counter_var):
     return tumor_marker
 
 
-def main():
+def main(args):
+    api_key = args.BioPortal_API_Key
+    dataset = args.Data_path
+    email = args.Email
+
     genomics_id = 1000  #set up unique identifiers for data elements in mcode data
     df_og = pd.read_excel(dataset, sheet_name=None, dtype=str)  #read sheet from given data pathway
     df_list = []
@@ -374,7 +386,7 @@ def main():
     mcode_dataframe = mcode_dataframe.fillna('nan')
     mcode_list = []
     for index, row in mcode_dataframe.iterrows():   #build mcode data model from combined dataframe
-        mcode_list.append(mcodepacket_build(row, genomics_id))
+        mcode_list.append(mcodepacket_build(row, genomics_id, api_key, email))
         genomics_id += 1
     print(mcode_list)
     with open('mCodePacket.json', 'w') as f:    #write to json file for ingestion
@@ -382,4 +394,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(parse_args())
