@@ -4,7 +4,7 @@ from CSVConvert import mcode_mapping, race_mapping, eliminate_duplicate, combine
 from MappingDict import mcode_dict, valid_mcode, possible_multi_val
 import pandas as pd
 
-df = pd.read_excel('data/pytest_data_v2.xlsx', sheet_name=None, dtype=str)  #read sheet from given data pathway
+df = pd.read_excel('data/pytest_data_v2.xlsx', sheet_name=None, dtype=str, engine='openpyxl')  #read sheet from given data pathway
 df_list = []
 for page in df:
     df_list.append(mcode_mapping(df[page]))  #append all processed mcode dataframes to a list

@@ -5,7 +5,7 @@ from MappingDict import mcode_dict, valid_mcode, possible_multi_val
 import pandas as pd
 
 
-df = pd.read_excel('data/pytest_data_v1.xlsx', dtype=str)  #read sheet from given data pathway
+df = pd.read_excel('data/pytest_data_v1.xlsx', dtype=str, engine='openpyxl')  #read sheet from given data pathway
 print(df)
 df_drop_na = df.fillna('nan')
 df_modified = df_drop_na.drop_duplicates(subset='Subject')
