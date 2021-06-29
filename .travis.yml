@@ -12,5 +12,6 @@ install:
   - pip install pandas
   - pip install biopython
   - pip install httplib2
+  - pip install xlrd
 script:
   - pytest
