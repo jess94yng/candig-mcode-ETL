@@ -13,5 +13,6 @@ install:
   - pip install biopython
   - pip install httplib2
   - pip install xlrd
+  - pip install openpyxl
 script:
   - pytest
