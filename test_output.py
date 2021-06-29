@@ -30,7 +30,7 @@ def is_datatype(element, datatype):
 @pytest.mark.parametrize('patients', data)
 @pytest.mark.dependency(name = 'test_mcode_fields')
 def test_mcode_fields(patients):
-    assert is_in_data('id', patients), 'required mcode id field missing'
+    assert is_in_data('ie', patients), 'required mcode id field missing'
     assert is_in_data('meta_data', patients), 'required mcode meta data field missing'
     assert is_in_data('subject', patients), 'required mcode subject field missing'
     assert is_in_data('genomics_report', patients), 'required mcode genomics report field missing'
