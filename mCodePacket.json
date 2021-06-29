@@ -1,0 +1,270 @@
+[
+    {
+        "id": "ABC-01-01",
+        "meta_data": {
+            "created": "2021-06-28 11:54:24.465297",
+            "mcodepacket_schema_version": "1.0.0-RC3",
+            "created_by": "Ksenia Zaytseva",
+            "submitted_by": "Ksenia Zaytseva",
+            "resources": [
+                {
+                    "name": "NCBI Taxonomy OBO Edition",
+                    "version": "2020-11-02",
+                    "namespace_prefix": "NCBITaxon",
+                    "id": "NCBITaxon:2020-11-02",
+                    "iri_prefix": "https://bioportal.bioontology.org/ontologies/NCBITAXON",
+                    "url": "https://bioportal.bioontology.org/ontologies/NCBITAXON"
+                },
+                {
+                    "name": "SNOMED Clinical Terms",
+                    "version": "2021-04-03",
+                    "namespace_prefix": "SNOMED",
+                    "id": "SNOMED:2021-04-03",
+                    "iri_prefix": "https://bioportal.bioontology.org/ontologies/SNOMEDCT",
+                    "url": "https://bioportal.bioontology.org/ontologies/SNOMEDCT"
+                },
+                {
+                    "name": "RxNORM",
+                    "version": "2020-05-20",
+                    "namespace_prefix": "RxNorm",
+                    "id": "RxNorm:2020-05-20",
+                    "iri_prefix": "https://bioportal.bioontology.org/ontologies/RXNORM",
+                    "url": "https://bioportal.bioontology.org/ontologies/RXNORM"
+                },
+                {
+                    "name": "Logical Observation Identifier Names and Codes",
+                    "version": "2021-04-03",
+                    "namespace_prefix": "LOINC",
+                    "id": "LOINC:2021-04-03",
+                    "iri_prefix": "https://bioportal.bioontology.org/ontologies/LOINC",
+                    "url": "https://bioportal.bioontology.org/ontologies/LOINC"
+                },
+                {
+                    "name": "Health Level Seven Terminologies",
+                    "version": "2021-03-07",
+                    "namespace_prefix": "HL7",
+                    "id": "HL7:2021-03-07",
+                    "iri_prefix": "https://terminology.hl7.org/2.1.0/",
+                    "url": "https://terminology.hl7.org/2.1.0/"
+                },
+                {
+                    "name": "HUGO Gene Nomenclature Committee",
+                    "version": "2020-08-06",
+                    "namespace_prefix": "HGNC",
+                    "id": "HGNC:2020-08-06",
+                    "iri_prefix": "http://rest.genenames.org/fetch/symbol/",
+                    "url": "https://www.genenames.org/tools/search/"
+                },
+                {
+                    "name": "Human Genome Variation Society",
+                    "version": "2020-05-01",
+                    "namespace_prefix": "HGVS",
+                    "id": "HGVS:2020-05-01",
+                    "iri_prefix": "https://www.ncbi.nlm.nih.gov/clinvar/",
+                    "url": "https://www.ncbi.nlm.nih.gov/clinvar/"
+                }
+            ]
+        },
+        "subject": {
+            "id": "ABC-01-01",
+            "taxonomy": {
+                "id": "NCBITaxon:9606",
+                "label": "Homo sapiens"
+            },
+            "comorbid_condition": {
+                "code": {
+                    "id": "SNOMED:103329007",
+                    "label": "Not available"
+                }
+            },
+            "extra_properties": {
+                "communication_language": "Not available",
+                "administrative_gender": {
+                    "id": "HL7: C0686905",
+                    "label": "Not available"
+                },
+                "name": "Not available"
+            },
+            "date_of_birth": "2022 JUNE",
+            "sex": "FEMALE",
+            "race": "2054-5",
+            "ethnicity": "2186-5",
+            "ecog_performance_status": {
+                "id": "ECOG: 0",
+                "label": "Fully active, able to carry on all pre-disease performance without restriction"
+            },
+            "karnofsky": {
+                "id": "KARNOFSKY: Not available",
+                "label": "Not available"
+            }
+        },
+        "genomics_report": {
+            "id": "1000",
+            "code": {
+                "id": "LOINC:LA7338-2",
+                "label": "Not available"
+            },
+            "performing_organization_name": "Big Forest Hospital",
+            "issued": "2022 FEB 27",
+            "genetic_specimen": [
+                {
+                    "id": "1000-0",
+                    "collection_body": {
+                        "id": "SNOMED:10200004",
+                        "label": "Liver structure"
+                    },
+                    "specimen_type": {
+                        "id": "HL7:...",
+                        "label": "No suggested value"
+                    }
+                }
+            ],
+            "genetic_variant": {
+                "id": "1000",
+                "data_value": {
+                    "id": "LOINC:LA4489-6",
+                    "label": "Unknown"
+                }
+            },
+            "genetic_region_studied": {
+                "id": "1000",
+                "gene_mutation": [
+                    {
+                        "id": "HGVS:40488",
+                        "label": "NM_002834.5(PTPN11):c.174C>A (p.Asn58Lys)"
+                    }
+                ],
+                "gene_studied": [
+                    {
+                        "id": "HGNC:7989",
+                        "label": "NRAS"
+                    }
+                ]
+            }
+        },
+        "cancer_condition": {
+            "id": "1000",
+            "condition_type": "primary",
+            "code": {
+                "id": "SNOMED:103329007",
+                "label": "Not available"
+            },
+            "date_of_diagnosis": "2023 FEB 01",
+            "histology_morphological_behavior": {
+                "id": "SNOMED:35917007",
+                "label": "Adenocarcinoma"
+            }
+        },
+        "cancer_related_procedures": {
+            "id": "1000",
+            "procedure_type": "radiation",
+            "code": {
+                "id": "SNOMED:103329007",
+                "label": "Not available"
+            },
+            "body_site": [
+                {
+                    "id": "SNOMEDCT:38266002",
+                    "label": "Entire body as a whole"
+                }
+            ]
+        },
+        "medication_statement": [
+            {
+                "id": "1000-0",
+                "medication_code": {
+                    "id": "RxNorm:372538008",
+                    "label": "Irinotecan"
+                }
+            },
+            {
+                "id": "1000-1",
+                "medication_code": {
+                    "id": "RxNorm:372538008",
+                    "label": "Irinotecan"
+                }
+            },
+            {
+                "id": "1000-2",
+                "medication_code": {
+                    "id": "RxNorm:409406007",
+                    "label": "Bevacizumab"
+                }
+            },
+            {
+                "id": "1000-3",
+                "medication_code": {
+                    "id": "RxNorm:395814003",
+                    "label": "Oxaliplatin"
+                }
+            }
+        ],
+        "date_of_death": "2023 SEP 25",
+        "tumor_marker": [
+            {
+                "id": "1000-0",
+                "individual": "ABC-01-01",
+                "tumor_marker_code": {
+                    "id": "LOINC:LA7338-2",
+                    "label": "Not available"
+                },
+                "tumor_marker_data_value": {
+                    "value": {
+                        "value": 4.8,
+                        "comparator": "="
+                    }
+                },
+                "extra_properties": {
+                    "leukocytes_wbc": "0.11",
+                    "leukocytes_wbc_unit": "x10<sup>9</sup>/L",
+                    "platelets": "0.11",
+                    "platelets_unit": "x10<sup>9</sup>/L",
+                    "neutrophils": "0.11",
+                    "neutrophils_unit": "x10<sup>9</sup>/L",
+                    "lymphocytes": "0.11",
+                    "lymphocytes_unit": "x10<sup>9</sup>/L",
+                    "monocytes": "0.11",
+                    "monocytes_unit": "x10<sup>9</sup>/L",
+                    "eosinophils": "0.11",
+                    "eosinophils_unit": "x10<sup>9</sup>/L",
+                    "basophils": "0.11",
+                    "basophils_unit": "x10<sup>9</sup>/L",
+                    "glucose": "0.11",
+                    "glucose_unit": "mmol/L",
+                    "sodium": "0.11",
+                    "sodium_unit": "mmol/L",
+                    "potassium": "0.11",
+                    "potassium_unit": "mmol/L",
+                    "chloride": "0.11",
+                    "chloride_unit": "mmol/L",
+                    "serum_creatinine": "0.11",
+                    "serum_creatinine_unit": "umol/L",
+                    "calcium": "0.11",
+                    "calcium_unit": "mmol/L",
+                    "magnesium": "0.11",
+                    "magnesium_unit": "mmol/L",
+                    "ast": "0.11",
+                    "ast_unit": "U/L",
+                    "bicarbonate": "0.11",
+                    "bicarbonate_unit": "mmol/L",
+                    "bun": "0.11",
+                    "bun_unit": "mmol/L",
+                    "total_bilirubin": "0.11",
+                    "total_bilirubin_unit": "umol/L",
+                    "total_protein": "0.11",
+                    "total_protein_unit": "g/L",
+                    "albumin": "0.11",
+                    "albumin_unit": "g/L",
+                    "phosphate": "0.11",
+                    "phosphate_unit": "mmol/L",
+                    "alt": "0.11",
+                    "alt_unit": "U/L",
+                    "alp": "0.11",
+                    "alp_unit": "U/L",
+                    "ldh": "0.11",
+                    "ldh_unit": "U/L"
+                }
+            }
+        ]
+    }
+]
