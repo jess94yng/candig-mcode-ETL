@@ -27,5 +27,7 @@ Dependencies
 
 --Email: organizational email used to access NCBI clinvar API
 
-##Testing
-Continuous Integration is implemented through Pytest and Travis CI which runs when git pushes occur. To run tests manually, enter from command line `pytest`
+## Testing
+Continuous Integration is implemented through Pytest and Travis CI which runs when git pushes occur. 
+
+To run tests manually, enter from command line `$ pytest`
