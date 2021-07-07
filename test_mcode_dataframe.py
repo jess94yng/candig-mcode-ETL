@@ -1,11 +1,11 @@
 import pytest
 import json
 from CSVConvert import mcode_mapping, race_mapping, eliminate_duplicate
-from MappingDict import mcode_dict, valid_mcode, possible_multi_val
+from MappingDict import mcode_dict, valid_mcode, possible_multi_val, mcode_date_elements
 import pandas as pd
 
 
-df = pd.read_excel('data/pytest_data_v1.xlsx', dtype=str, engine='openpyxl')  #read sheet from given data pathway
+df = pd.read_excel('data/pytest_data_v1.xlsx', dtype=str,   engine='openpyxl')  #read sheet from given data pathway
 print(df)
 df_drop_na = df.fillna('nan')
 df_modified = df_drop_na.drop_duplicates(subset='Subject')
@@ -40,11 +40,13 @@ def count_mapped_array(mcode_item):
 def test_duplicate():
     assert any(df_mapped.duplicated(subset=['identifier'], keep=False)) == False
 
+print(df_mapped['date_of_birth'])
+print(df_modified[mcode_dict['date_of_birth']])
 
 #test for correct mapping of elements
 @pytest.mark.parametrize('mcode', valid_mcode)
 def test_mapping(mcode):
-    if mcode in df_mapped and mcode not in possible_multi_val and mcode!= 'race':
+    if mcode in df_mapped and mcode not in possible_multi_val and mcode!= 'race' and mcode not in mcode_date_elements:
         check_mapping = df_mapped[mcode].eq(df_modified[mcode_dict[mcode]])
         assert check_mapping.all() == True, 'mapping incorrect'
     elif mcode in df_mapped and mcode in possible_multi_val:

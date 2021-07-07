@@ -189,6 +189,7 @@ possible_multi_val = ['gene_mutation', 'gene_studied', 'genetic_specimen', 'date
 
 #list of date data elements
 date_elements = ['BIRTH_DATE_YM_RAW','DIAG_PA_RAW', 'MUT_TEST_DT_RAW', 'DTH_DT_RAW']
+mcode_date_elements = ['date_of_birth', 'date_of_diagnosis', 'issued', 'date_of_death']
 
 date_mapping = {
     'jan': '01',

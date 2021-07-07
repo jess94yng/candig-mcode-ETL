@@ -30,7 +30,7 @@ def is_datatype(element, datatype):
 @pytest.mark.parametrize('patients', data)
 @pytest.mark.dependency(name = 'test_mcode_fields')
 def test_mcode_fields(patients):
-    assert is_in_data('ie', patients), 'required mcode id field missing'
+    assert is_in_data('id', patients), 'required mcode id field missing'
     assert is_in_data('meta_data', patients), 'required mcode meta data field missing'
     assert is_in_data('subject', patients), 'required mcode subject field missing'
     assert is_in_data('genomics_report', patients), 'required mcode genomics report field missing'
@@ -56,7 +56,7 @@ def test_mcode_fields(patients):
 def test_mcode_format(patients, mcode_data_element):
     if mcode_data_element == 'id' or mcode_data_element == 'date_of_death':
         assert is_datatype(patients[mcode_data_element], str), 'wrong mcode field data type'
-    elif mcode_data_element == 'medication_statement' or mcode_data_element == 'tumor_marker':
+    elif mcode_data_element == 'medication_statement' or mcode_data_element == 'tumor_marker' or mcode_data_element == 'cancer_condition' or mcode_data_element == 'cancer_related_procedures':
         assert is_datatype(patients[mcode_data_element], list), 'wrong mcode field data type'
     else: 
         assert is_datatype(patients[mcode_data_element], dict), 'wrong mcode field data type'
@@ -141,7 +141,8 @@ def test_genomics_report_format(patients, report_data_element):
 @pytest.mark.dependency(name = 'test_cancer_condition_required_fields')
 def test_cancer_condition_required_fields(patients):
     assert is_in_data('cancer_condition', patients), 'required  cancer condition field missing'
-    assert is_in_data('code', patients['cancer_condition']), 'required cancer condition code field missing'
+    for cancer_condition_item in patients['cancer_condition']:
+        assert is_in_data('code', cancer_condition_item), 'required cancer condition code field missing'
 
 
 # test for correct data types of cancer condition data elements
@@ -169,7 +170,8 @@ def test_cancer_condition_format(patients, condition_data_element):
 @pytest.mark.dependency(name = 'test_cancer_related_procedures_required_fields')
 def test_cancer_related_procedures_required_fields(patients):
     assert is_in_data('cancer_related_procedures', patients), 'required cancer related procedures field missing'
-    assert is_in_data('code',patients['cancer_related_procedures']), 'required cancer related procedures code field missing'
+    for cancer_procedure_item in patients['cancer_related_procedures']:
+        assert is_in_data('code', cancer_procedure_item), 'required cancer related procedures code field missing'
 
 
 # test for correct data types of cancer related procedure data elements
@@ -186,8 +188,8 @@ def test_cancer_procedure_format(patients, procedure_data_element):
     if is_in_data(procedure_data_element, patients['cancer_related_procedures']):
         if procedure_data_element == 'id' or procedure_data_element == 'procedure_type':
             assert is_datatype(patients['cancer_related_procedures'][procedure_data_element], str), 'wrong cancer related procedures field data type'
-        elif procedure_data_element == 'body_site':
-            assert is_datatype(patients['cancer_related_procedures'][procedure_data_element], list), 'wrong cancer related procedures field data type'
+        # elif procedure_data_element == 'body_site':
+        #     assert is_datatype(patients['cancer_related_procedures'][procedure_data_element], list), 'wrong cancer related procedures field data type'
         else: 
             assert is_datatype(patients['cancer_related_procedures'][procedure_data_element], dict), 'wrong cancer related procedures field data type'
 
