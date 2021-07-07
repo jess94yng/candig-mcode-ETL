@@ -184,5 +184,34 @@ race_mapping_dict = {
 }
 
 #list of data elements in array form in mcode
-possible_multi_val = ['gene_mutation', 'gene_studied', 'genetic_specimen',
+possible_multi_val = ['gene_mutation', 'gene_studied', 'genetic_specimen', 'date_of_diagnosis', 'histology_morphology_behavior',
                       'medication', 'tumor_marker_data_value', 'collection_body_site', 'body_site']
+
+#list of date data elements
+date_elements = ['BIRTH_DATE_YM_RAW','DIAG_PA_RAW', 'MUT_TEST_DT_RAW', 'DTH_DT_RAW']
+
+date_mapping = {
+    'jan': '01',
+    'january': '01',
+    'feb': '02',
+    'febuary': '02',
+    'mar': '03',
+    'march': '03',
+    'apr': '04',
+    'april': '04',
+    'may': '05',
+    'jun': '06',
+    'june': '06',
+    'jul': '07',
+    'july': '07',
+    'aug': '08',
+    'august': '08',
+    'sep': '09',
+    'september': '09',
+    'oct': '10',
+    'october': '10',
+    'nov': '11',
+    'november': '11',
+    'dec': '12',
+    'december': '12'
+}

@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+from os import error
 import pandas as pd
 import json
 from datetime import date
-from MappingDict import race_mapping_dict, valid_mcode, mcode_dict, lab_results, vital_signs, possible_multi_val
+from MappingDict import *
 from Ontologies import ontologies
 from SchemaBase import return_mcodepacket, return_subject, return_genomics_report, return_genetic_region_studied, return_cancer_condition, return_cancer_related_procedures, return_tumor_marker
 from IntegrateAPI import get_json, get_url, subtree_dict, hgnc_api, hgvs_api_esearch, hgvs_api_esummary
@@ -35,6 +36,21 @@ def not_null(cell):
         return True
 
 
+#format date fields
+def date_format(str_date):
+    str_date = str(str_date)
+    if str_date == 'nan':
+        return 'nan'
+    str_date = str_date.strip()
+    str_date_list = str_date.split(' ')
+    if len(str_date_list) < 3:
+        raise error('invalid date format')
+    
+    new_str_date = str_date_list[0] + '-' + date_mapping[str_date_list[1].lower()] + '-' + str_date_list[2]
+
+    return new_str_date
+
+
 # map race by sorting through columns of different race codes
 def race_mapping(input_dataframe, ind, cur_row, mapping_list):
     for list_item in mcode_dict['race']:    #for each possible race
@@ -49,7 +65,7 @@ def race_mapping(input_dataframe, ind, cur_row, mapping_list):
 #eliminate duplicate identifiers and group values from the same data element into a list in the dataframe
 def eliminate_duplicate(input_dataframe):
     input_dataframe = input_dataframe.dropna(how='all')
-    input_dataframe = input_dataframe.applymap(str)
+    input_dataframe = input_dataframe.applymap(str) 
     
     for index, row in input_dataframe.iterrows():   #for each element in the list of data elements that are expected to be in array form
         for multi_val_item in possible_multi_val:
@@ -60,7 +76,7 @@ def eliminate_duplicate(input_dataframe):
             for multi_val_item in possible_multi_val:   #for each element in list of data elements that are expected to be in array form
                 if multi_val_item in input_dataframe: #if element exists in current dataframe
                     for index1, row1 in input_dataframe.iterrows(): #find following repeated identifiers and append data elements to the list if they are not null
-                        if index1 != index and row1['identifier'] == row['identifier'] and row1[multi_val_item] != 'nan':
+                        if index1 != index and row1['identifier'] == row['identifier']:
                             row[multi_val_item].append(row1[multi_val_item])
     input_dataframe = input_dataframe.drop_duplicates(subset='identifier')  #drop all identifier duplicates after the first one
     return input_dataframe
@@ -79,6 +95,8 @@ def mcode_mapping(input_dataframe):
             if item == 'race':  #use race_mapping
                 race_mapping(input_dataframe, index, row, data_element_list)
             elif mcode_dict[item] in input_dataframe:   #add a tuple with the data element and the corresponding value
+                if mcode_dict[item] in date_elements:
+                    row[mcode_dict[item]] = date_format(row[mcode_dict[item]])
                 data_element_list.append((item, row[mcode_dict[item]]))
 
         for element in data_element_list:
@@ -140,6 +158,7 @@ def mcodepacket_build(dataframe_item, counter_var, api_key, email):
     return (mcodepacket)
 
 
+#Function to build subject fields
 def subject_build(dataframe_item):
     subject = return_subject(dataframe_item['identifier'])
 
@@ -176,6 +195,7 @@ def subject_build(dataframe_item):
     return subject
 
 
+#Function to build genomics report fields
 def genomics_report_build(dataframe_item, counter_var, api_key, email):
     genomics_report = return_genomics_report(counter_var)
 
@@ -201,6 +221,7 @@ def genomics_report_build(dataframe_item, counter_var, api_key, email):
     return genomics_report
 
 
+#Function to buid genetic specimen fields
 def genetic_specimen_build(dataframe_item, genomics_report, counter_var, api_key):
     genetic_specimen = []
     if dataframe_item.get('genetic_specimen', None) and not_null(dataframe_item['genetic_specimen']):
@@ -225,6 +246,7 @@ def genetic_specimen_build(dataframe_item, genomics_report, counter_var, api_key
         genomics_report['genetic_specimen'] = genetic_specimen
 
 
+#Function to build genetic variant fields
 def genetic_variant_build(dataframe_item, genomics_report, counter_var):
     if dataframe_item.get('genetic_variant', None) and not_null(dataframe_item['genetic_variant']):
         if dataframe_item['variant_data_value'] in ontologies['variant_data_value']:
@@ -242,6 +264,7 @@ def genetic_variant_build(dataframe_item, genomics_report, counter_var):
             }
 
 
+#Function to build genetic mutation fields
 def genetic_mutation_build(dataframe_item, genetic_region_studied, gene_region_add, email):
     if dataframe_item.get('gene_mutation', None) and not_null(dataframe_item['gene_mutation']):
         gene_region_add = True
@@ -257,6 +280,7 @@ def genetic_mutation_build(dataframe_item, genetic_region_studied, gene_region_a
     return gene_region_add
 
 
+#Function to build gene studied fields
 def gene_studied_build(dataframe_item, genetic_region_studied, gene_region_add):
     if dataframe_item.get('gene_studied', None) and not_null(dataframe_item['gene_studied']):
         gene_region_add = True
@@ -272,51 +296,63 @@ def gene_studied_build(dataframe_item, genetic_region_studied, gene_region_add):
     return gene_region_add
 
 
+#Function to build cancer condition fields
 def cancer_condition_build(dataframe_item, counter_var, api_key):
-    cancer_condition = return_cancer_condition(counter_var)
+    cancer_condition = [] 
 
-    if dataframe_item.get('date_of_diagnosis', None) and not_null(dataframe_item['date_of_diagnosis']):
-        cancer_condition['date_of_diagnosis'] = dataframe_item['date_of_diagnosis']
     if dataframe_item.get('histology_morphology_behavior', None) and not_null(dataframe_item['histology_morphology_behavior']):
-        behavior_term = dataframe_item['histology_morphology_behavior'].replace(
-            ' ', '+')
-        need_break = False
-        for behavior_subtree in subtree_dict['histology_morphology_behaviour']:   #several potential subtrees for ontology search
-            term_colleciion = get_json(get_url('SNOMEDCT', behavior_term, False, subtree_dict['histology_morphology_behaviour'][behavior_subtree]), api_key)['collection']
-            if len(term_colleciion) > 0:    #only use ontologies when 1 or more concepts are found
-                for list_item in term_colleciion:
-                    if 'notation' in list_item:
-                        identification = 'SNOMED:' + list_item['notation']
-                        label = list_item['prefLabel']
-                        need_break = True
-                        break
-            if need_break:
-                break
-            if behavior_subtree == 'subtreeThree':  #if on last subtree and still no results, return unknown
-                identification = 'SNOMED:261665006'
-                label = 'Unknown'
-        cancer_condition['histology_morphological_behavior'] = {
-            'id': identification,
-            'label': label
-        }
+        temp_counter4 = 0
+        for i in range(len(dataframe_item['histology_morphology_behavior'])):
+            cancer_condition.append(return_cancer_condition(counter_var, temp_counter4))
+
+            if dataframe_item.get('date_of_diagnosis', None) and not_null(dataframe_item['date_of_diagnosis'][i]):
+                cancer_condition[-1]['date_of_diagnosis'] = dataframe_item['date_of_diagnosis'][i]
+            
+            behavior_term = dataframe_item['histology_morphology_behavior'][i].replace(' ', '+')
+            need_break = False
+            for behavior_subtree in subtree_dict['histology_morphology_behaviour']:   #several potential subtrees for ontology search
+                term_collection = get_json(get_url('SNOMEDCT', behavior_term, False, subtree_dict['histology_morphology_behaviour'][behavior_subtree]), api_key)['collection']
+                if len(term_collection) > 0:    #only use ontologies when 1 or more concepts are found
+                    for list_item in term_collection:
+                        if 'notation' in list_item:
+                            identification = 'SNOMED:' + list_item['notation']
+                            label = list_item['prefLabel']
+                            need_break = True
+                            break
+                if need_break:
+                    break
+                if behavior_subtree == 'subtreeThree':  #if on last subtree and still no results, return unknown
+                    identification = 'SNOMED:261665006'
+                    label = 'Unknown'
+            cancer_condition[-1]['histology_morphological_behavior'] = {
+                'id': identification,
+                'label': label
+            }
+
+            temp_counter4 += 1
     
     return cancer_condition
 
+
+#Function to build cancer related procedures fields
 def cancer_related_procedures_build(dataframe_item, counter_var, api_key):
-    cancer_related_procedures = return_cancer_related_procedures(counter_var)
+    cancer_related_procedures = []
 
     if dataframe_item.get('body_site', None) and not_null(dataframe_item['body_site']):
-        bodySite = []
+        temp_counter5 = 0
         for i in range(len(dataframe_item['body_site'])):
-            bodySite.append({
+            cancer_related_procedures.append(return_cancer_related_procedures(counter_var, temp_counter5))
+            bodySite = {
                 'id': generate_body_site(dataframe_item['body_site'][i], api_key)[0],
                 'label': generate_body_site(dataframe_item['body_site'][i], api_key)[1]
-            })
-
-        cancer_related_procedures['body_site'] = bodySite
+            }
+            cancer_related_procedures[-1]['body_site'] = bodySite
+            temp_counter5 += 1
     
     return cancer_related_procedures
 
+
+#Function to build medicaiton statement fields
 def medication_statement_build(dataframe_item, counter_var, api_key):
     medication_statement = []
     if dataframe_item.get('medication', None) and not_null(dataframe_item['medication']):
@@ -341,6 +377,8 @@ def medication_statement_build(dataframe_item, counter_var, api_key):
     
     return medication_statement
 
+
+#Function to build tumor marker fields
 def tumor_marker_build(dataframe_item, counter_var, api_key):
     tumor_marker = []
     tumor_extra = {}

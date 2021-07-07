@@ -69,9 +69,9 @@ def return_genetic_region_studied(counter):
 
 
 #build cancer condition base
-def return_cancer_condition(counter):
+def return_cancer_condition(counter, small_counter):
     return {
-        'id': str(counter),
+        'id': str(counter) + '-' + str(small_counter),
         'condition_type': 'primary',
         'code': {
             'id': 'SNOMED:103329007',
@@ -81,9 +81,9 @@ def return_cancer_condition(counter):
 
 
 #build cancer related procedures base
-def return_cancer_related_procedures(counter):
+def return_cancer_related_procedures(counter, small_counter):
     return {
-        'id': str(counter),
+        'id': str(counter) + '-' + str(small_counter),
         'procedure_type': 'radiation',
         #         code for surgical procedure required, but schema only allows one of radiation/surgical procedures
         'code': {
