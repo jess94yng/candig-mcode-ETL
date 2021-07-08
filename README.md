@@ -30,6 +30,6 @@ Dependencies
 --Email: organizational email used to access NCBI clinvar API
 
 ## Testing
-Continuous Integration is implemented through Pytest and Travis CI which runs when git pushes occur. 
+Continuous Integration is implemented through Pytest and Travis CI which runs when git pushes occur. Build results can be found at [this repository's Travis build page](https://travis-ci.com/github/CanDIG/medidata_mCode_ETL)
 
 To run tests manually, enter from command line `$ pytest`
