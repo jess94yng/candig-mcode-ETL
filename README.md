@@ -1,4 +1,6 @@
-# medidata_mCode_ETL
+# medidata_mCode_ETL 
+[![Build Status](https://travis-ci.com/CanDIG/medidata_mCode_ETL.svg?token=G1SY8JVFAzjkR7ZoffDu&branch=main)](https://travis-ci.com/CanDIG/medidata_mCode_ETL)
+
 Convert medidata rave data to mCode model for Katsu ingestion with Python
 
 ## Set-up & Installation
