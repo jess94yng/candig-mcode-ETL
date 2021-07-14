@@ -33,3 +33,5 @@ Dependencies
 Continuous Integration is implemented through Pytest and Travis CI which runs when git pushes occur. Build results can be found at [this repository's Travis build page](https://travis-ci.com/github/CanDIG/medidata_mCode_ETL)
 
 To run tests manually, enter from command line `$ pytest`
+
+*Note: updated mCodePacket.json files must be pushed for all tests to pass during Travis builds*
